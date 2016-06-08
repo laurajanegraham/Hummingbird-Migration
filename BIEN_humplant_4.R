@@ -241,7 +241,7 @@ birds_spe<-merge(final_evi,birds_spe,by=c("month","cellnum"))
 #group by factors I wanted to keep
 #calculated richness by summing up the presences
 birds_rich<-birds_spe %>%
-  group_by(month,cellnum,scelev,alt,x,y)%>% 
+  group_by(month,cellnum,scelev,alt)%>% 
   summarise(rich=sum(presence))
 
 #match plant richness to all cells
