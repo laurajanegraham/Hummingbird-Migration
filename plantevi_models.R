@@ -210,3 +210,75 @@ plantevi_alex_rsq <- lapply(plantevi_alex, function(x) r.squaredGLMM(x))
 plantevi_cal_rsq <- lapply(plantevi_cal, function(x) r.squaredGLMM(x))
 plantevi_plat_rsq <- lapply(plantevi_plat, function(x) r.squaredGLMM(x))
 plantevi_ruf_rsq <- lapply(plantevi_ruf, function(x) r.squaredGLMM(x))
+
+setwd("~/masters/Hummingbirds/R for masters/2BIEN3/plantevi_models2")
+save(plantevi_rich, file = "plantevi_rich.Rdata")
+save(plantevi_alex, file = "plantevi_alex.Rdata")
+save(plantevi_cal, file = "plantevi_cal.Rdata")
+save(plantevi_plat, file = "plantevi_plat.Rdata")
+save(plantevi_ruf, file = "plantevi_ruf.Rdata")
+
+save(plantevi_rich_rsq, file = "plantevi_rich_rsq.Rdata")
+save(plantevi_alex_rsq, file = "plantevi_alex_rsq.Rdata")
+save(plantevi_cal_rsq, file = "plantevi_cal_rsq.Rdata")
+save(plantevi_plat_rsq, file = "plantevi_plat_rsq.Rdata")
+save(plantevi_ruf_rsq, file = "plantevi_ruf_rsq.Rdata")
+
+plantevi_rich_sum <- lapply(plantevi_rich, function(x) summary(x))
+plantevi_alex_sum <- lapply(plantevi_alex, function(x) summary(x))
+plantevi_cal_sum <- lapply(plantevi_cal, function(x) summary(x))
+plantevi_plat_sum <- lapply(plantevi_plat, function(x) summary(x))
+plantevi_ruf_sum <- lapply(plantevi_ruf, function(x) summary(x))
+
+table_magic <- function(x){
+  mod <- data.frame(coef(x))
+  mod$sig <- ifelse(mod$Pr...z.. < 0.05, "*", "")
+  mod <- mod[c("Estimate","Std..Error","sig")]
+  mod$Estimate <- round(mod$Estimate,2)
+  mod$Std..Error <- round(mod$Std..Error,2)
+  
+  mod_uni <- unite_(mod,"Totalres",c("Estimate","Std..Error"), sep = " [")
+  mod_uni <- unite_(mod_uni,"Totalres",c("Totalres","sig"), sep = "]")
+  
+  mod_t <- t(mod_uni)
+  mod_t <- data.frame(mod_t)
+  
+  mod_t$call <- as.character(x$call)[2]
+  mod_t$AIC <- round(x$AIC[1],0)
+  return(mod_t)
+}
+
+plantevi_rich_t <- lapply(plantevi_rich_sum, table_magic)
+plantevi_rich_t <- ldply(plantevi_rich_t)
+plantevi_rich_t <- cbind(plantevi_rich_t, round(ldply(plantevi_rich_rsq),2))
+plantevi_rich_t <- sapply(plantevi_rich_t, as.character)
+plantevi_rich_t[is.na(plantevi_rich_t)] <- "-"
+write.csv(plantevi_rich_t,"plantevi_rich_t.csv")
+
+plantevi_alex_t <- lapply(plantevi_alex_sum, table_magic)
+plantevi_alex_t <- ldply(plantevi_alex_t)
+plantevi_alex_t <- cbind(plantevi_alex_t, round(ldply(plantevi_alex_rsq),2))
+plantevi_alex_t <- sapply(plantevi_alex_t, as.character)
+plantevi_alex_t[is.na(plantevi_alex_t)] <- "-"
+write.csv(plantevi_alex_t, "plantevi_alex_t.csv")
+
+plantevi_cal_t <- lapply(plantevi_cal_sum, table_magic)
+plantevi_cal_t <- ldply(plantevi_cal_t)
+plantevi_cal_t <- cbind(plantevi_cal_t, round(ldply(plantevi_cal_rsq),2))
+plantevi_cal_t <- sapply(plantevi_cal_t, as.character)
+plantevi_cal_t[is.na(plantevi_cal_t)] <- "-"
+write.csv(plantevi_cal_t, "plantevi_cal_t.csv")
+
+plantevi_plat_t <- lapply(plantevi_plat_sum, table_magic)
+plantevi_plat_t <- ldply(plantevi_plat_t)
+plantevi_plat_t <- cbind(plantevi_plat_t, round(ldply(plantevi_plat_rsq),2))
+plantevi_plat_t <- sapply(plantevi_plat_t, as.character)
+plantevi_plat_t[is.na(plantevi_plat_t)] <- "-"
+write.csv(plantevi_plat_t, "plantevi_plat_t.csv")
+
+plantevi_ruf_t <- lapply(plantevi_ruf_sum, table_magic)
+plantevi_ruf_t <- ldply(plantevi_ruf_t)
+plantevi_ruf_t <- cbind(plantevi_ruf_t, round(ldply(plantevi_ruf_rsq),2))
+plantevi_ruf_t <- sapply(plantevi_ruf_t, as.character)
+plantevi_ruf_t[is.na(plantevi_ruf_t)] <- "-"
+write.csv(plantevi_ruf_t, "plantevi_ruf_t.csv")
