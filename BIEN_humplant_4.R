@@ -168,23 +168,29 @@ plant_df<-as.data.frame(plant_df[,3:5])
 plant_df<-plant_df[,1:3]
 plant_df$plant_rich<-sqrt(plant_df$plant_rich)
 
-#loading bird files
-setwd("~/masters/Hummingbirds/output-data")
-bird_files<-list()
-bird_files <- list.files("output-data",".txt")
+#loading centroid bird files
+#setwd("~/masters/Hummingbirds/output-data")
+#bird_files<-list()
+#bird_files <- list.files("output-data",".txt")
 
 #remove ruby throat
-bird_files<-bird_files[!bird_files %in% "west_centroidsArchilochuscolubris.txt"]
+#bird_files<-bird_files[!bird_files %in% "west_centroidsArchilochuscolubris.txt"]
+#
+#setwd("~/masters/Hummingbirds/output-data/output-data")
+#bird_pts<-list()
+#bird_pts<-lapply(bird_files, function(x)read.table(x, header=T)) 
 
-setwd("~/masters/Hummingbirds/output-data/output-data")
-bird_pts<-list()
-bird_pts<-lapply(bird_files, function(x)read.table(x, header=T)) 
+#migration points
+setwd("~/masters/Hummingbirds/R for masters/aggregate_by_species")
+
+bird_pts <- read.csv("bird_pts.csv")
+birds <- bird_pts
 
 setwd("~/masters/Hummingbirds/R for masters/2BIEN3")
 
 #create bird presence dataframe for every cell.
-birds<-ldply(bird_pts)
-birds<-subset(birds,select=c("spname","lon","lat","month"))
+#birds<-ldply(bird_pts)
+#birds<-subset(birds,select=c("spname","lon","lat","month"))
 birds<-SpatialPointsDataFrame(coords=cbind(birds$lon,birds$lat),data=birds,proj4string = CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"))
 birds$cellnum<-cellFromXY(r,birds)
 birds<-as.data.frame(birds)
@@ -258,6 +264,7 @@ pb_sp<-birds_spe[S,]
 
 #remove evi NAs
 pb_rich_evi<-pb_rich[complete.cases(pb_rich),]
+
 pb_sp_evi<-pb_sp[complete.cases(pb_sp),]
 
 #fitting models
@@ -311,7 +318,7 @@ bird_rich_rsq<-lapply(bird_rich_models, function(x) r.squaredGLMM(x))
 alex_models<-list()
 
 alex_data<-pb_sp_evi %>%
-  filter(spname == 'Archilochusalexandri')
+  filter(spname == 'Archilochus alexandri')
 alex_models[[1]]<-glmer(alex_data$presence~ (1|alex_data$month),
                         family=binomial)
 alex_models[[2]]<-glmer(alex_data$presence~ alex_data$plant_rich + (1|alex_data$month),
@@ -335,7 +342,8 @@ alex_models[[6]]<-glmer(alex_spring$presence~ alex_spring$plant_rich + alex_spri
 #alex_models[[8]]<-glmer(alex_spring$presence~ alex_spring$plant_rich + alex_spring$scelev + alex_spring$evi + (1|alex_spring$month),
  #                       family=binomial)
 
-alex_fall<-alex_data %>% filter(month >= 6 & month <= 12)
+#alex_fall<-alex_data %>% filter(month >= 6 & month <= 12)
+alex_fall<-alex_data %>% filter(month >= 6 & month <= 11)
 alex_models[[7]]<-glmer(alex_fall$presence~ (1|alex_fall$month),
                         family=binomial)
 alex_models[[8]]<-glmer(alex_fall$presence~ alex_fall$plant_rich + (1|alex_fall$month),
@@ -356,7 +364,7 @@ alex_models[[12]]<-glmer(alex_fall$presence~ alex_fall$plant_rich + alex_fall$sc
 alex_rsq<-lapply(alex_models, function(x) r.squaredGLMM(x))
 
 cal_models<-list()
-cal_data<-pb_sp_evi %>% filter(spname == 'Selasphoruscalliope')
+cal_data<-pb_sp_evi %>% filter(spname == 'Selasphorus calliope')
 
 cal_models[[1]]<-glmer(cal_data$presence~ (1|cal_data$month),
       family=binomial)
@@ -402,7 +410,7 @@ cal_models[[12]] <- glmer(cal_fall$presence~ cal_fall$plant_rich + cal_fall$scel
 cal_rsq<-lapply(cal_models, function(x) r.squaredGLMM(x))
 
 plat_models<-list()
-plat_data<-pb_sp_evi %>% filter(spname == 'Selasphorusplatycercus')
+plat_data<-pb_sp_evi %>% filter(spname == 'Selasphorus platycercus')
 
 plat_models[[1]]<-glmer(plat_data$presence~ (1|plat_data$month),
                         family=binomial)
@@ -428,7 +436,8 @@ plat_models[[6]]<-glmer(plat_spring$presence~ plat_spring$plant_rich + plat_spri
 #plat_models[[8]]<-glmer(plat_spring$presence~ plat_spring$plant_rich + plat_spring$scelev + plat_spring$evi + (1|plat_spring$month),
  #                       family=binomial)
 
-plat_fall<-plat_data %>% filter(month >= 7 & month <= 12)
+#plat_fall<-plat_data %>% filter(month >= 7 & month <= 12)
+plat_fall<-plat_data %>% filter(month >= 7 & month <= 10)
 plat_models[[7]]<-glmer(plat_fall$presence~ (1|plat_fall$month),
                         family=binomial)
 plat_models[[8]]<-glmer(plat_fall$presence~ plat_fall$plant_rich + (1|plat_fall$month),
@@ -449,7 +458,7 @@ plat_models[[12]]<-glmer(plat_fall$presence~ plat_fall$plant_rich + plat_fall$sc
 plat_rsq<-lapply(plat_models, function(x) r.squaredGLMM(x))
 
 ruf_models<-list()
-ruf_data<-pb_sp_evi %>% filter(spname == 'Selasphorusrufus')
+ruf_data<-pb_sp_evi %>% filter(spname == 'Selasphorus rufus')
 
 ruf_models[[1]]<-glmer(ruf_data$presence~ (1|ruf_data$month),
                        family=binomial)
@@ -493,28 +502,6 @@ ruf_models[[12]]<-glmer(ruf_fall$presence~ ruf_fall$plant_rich + ruf_fall$scelev
                           ruf_fall$plant_rich*ruf_fall$scelev + (1|ruf_fall$month),family=binomial)
 
 ruf_rsq<-lapply(ruf_models, function(x) r.squaredGLMM(x))
-
-
-#AIC tests
-bird_yr<-AIC(bird_rich_models[[1]],bird_rich_models[[2]],bird_rich_models[[3]])
-bird_sp<-AIC(bird_rich_models[[4]],bird_rich_models[[5]],bird_rich_models[[6]])
-bird_fa<-AIC(bird_rich_models[[7]],bird_rich_models[[8]],bird_rich_models[[9]])
-
-alex_yr<-AIC(alex_models[[1]],alex_models[[2]],alex_models[[3]])
-alex_sp<-AIC(alex_models[[4]],alex_models[[5]],alex_models[[6]])
-alex_fa<-AIC(alex_models[[7]],alex_models[[8]],alex_models[[9]])
-
-cal_yr<-AIC(cal_models[[1]],cal_models[[2]],cal_models[[3]])
-cal_sp<-AIC(cal_models[[4]],cal_models[[5]],cal_models[[6]])
-cal_fa<-AIC(cal_models[[7]],cal_models[[8]],cal_models[[9]])
-
-plat_yr<-AIC(plat_models[[1]],plat_models[[2]],plat_models[[3]])
-plat_sp<-AIC(plat_models[[4]],plat_models[[5]],plat_models[[6]])
-plat_fa<-AIC(plat_models[[7]],plat_models[[8]],plat_models[[9]])
-
-ruf_yr<-AIC(ruf_models[[1]],ruf_models[[2]],ruf_models[[3]])
-ruf_sp<-AIC(ruf_models[[4]],ruf_models[[5]],ruf_models[[6]])
-ruf_fa<-AIC(ruf_models[[7]],ruf_models[[8]],ruf_models[[9]])
 
 #save
 save(bird_rich_rsq, file="bird_rich_rsq.Rdata")

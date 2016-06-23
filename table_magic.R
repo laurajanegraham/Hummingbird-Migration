@@ -22,6 +22,11 @@ table_magic <- function(x){
   mod_t$AIC <- round(x$AIC[1],0)
   return(mod_t)
 }
+bird_sum <- lapply(bird_rich_models, function(x) summary(x))
+alex_sum <- lapply(alex_models, function(x) summary(x))
+cal_sum <- lapply(cal_models, function(x) summary(x))
+plat_sum <- lapply(plat_models, function(x) summary(x))
+ruf_sum <- lapply(ruf_models, function (x) summary(x))
 
 alex <- lapply(alex_sum, table_magic)
 alex <- ldply(alex)
@@ -144,6 +149,12 @@ write.csv(correct, "plantrich_models.csv")
 
 #EVI table
 setwd("~/masters/Hummingbirds/R for masters/2BIEN3/model results")
+
+birdevi_sum <- lapply(bird_rich_evi, function(x) summary(x))
+alexevi_sum <- lapply(alex_evi, function(x) summary(x))
+calevi_sum <- lapply(cal_evi, function(x) summary(x))
+platevi_sum <- lapply(plat_evi, function(x) summary(x))
+rufevi_sum <- lapply(ruf_evi, function(x) summary(x))
 
 bird_evi <- lapply(birdevi_sum, table_magic)
 bird_evi <- ldply(bird_evi)

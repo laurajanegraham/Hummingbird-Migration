@@ -69,7 +69,7 @@ plantevi_rich[[26]] <- glmer(cbind(fall_rich$rich,4-fall_rich$rich) ~ fall_rich$
 plantevi_rich[[27]] <- glmer(cbind(fall_rich$rich,4-fall_rich$rich) ~ fall_rich$plant_rich + fall_rich$evi + fall_rich$scelev + fall_rich$plant_rich*fall_rich$evi + fall_rich$plant_rich*fall_rich$scelev + fall_rich$evi*fall_rich$scelev + (1|fall_rich$month), family = binomial)
 
 alex_data<-pb_sp_evi %>%
-  filter(spname == 'Archilochusalexandri')
+  filter(spname == 'Archilochus alexandri')
 plantevi_alex <- list()
 plantevi_alex[[1]] <- glmer(alex_data$presence ~ alex_data$plant_rich + alex_data$evi + (1|alex_data$month), family = binomial)
 plantevi_alex[[2]] <- glmer(alex_data$presence ~ alex_data$plant_rich + alex_data$evi + alex_data$plant_rich*alex_data$evi + (1|alex_data$month), family = binomial)
@@ -92,7 +92,8 @@ plantevi_alex[[16]] <- glmer(alex_spring$presence ~ alex_spring$plant_rich + ale
 plantevi_alex[[17]] <- glmer(alex_spring$presence ~ alex_spring$plant_rich + alex_spring$evi + alex_spring$scelev + alex_spring$plant_rich*alex_spring$evi + alex_spring$evi*alex_spring$scelev + (1|alex_spring$month), family = binomial)
 plantevi_alex[[18]] <- glmer(alex_spring$presence ~ alex_spring$plant_rich + alex_spring$evi + alex_spring$scelev + alex_spring$plant_rich*alex_spring$evi + alex_spring$plant_rich*alex_spring$scelev + alex_spring$evi*alex_spring$scelev + (1|alex_spring$month), family = binomial)
 
-alex_fall<-alex_data %>% filter(month >= 6 & month <= 12)
+#alex_fall<-alex_data %>% filter(month >= 6 & month <= 12)
+alex_fall<-alex_data %>% filter(month >= 6 & month <= 11)
 plantevi_alex[[19]] <- glmer(alex_fall$presence ~ alex_fall$plant_rich + alex_fall$evi + (1|alex_fall$month), family = binomial)
 plantevi_alex[[20]] <- glmer(alex_fall$presence ~ alex_fall$plant_rich + alex_fall$evi + alex_fall$plant_rich*alex_fall$evi + (1|alex_fall$month), family = binomial)
 plantevi_alex[[21]] <- glmer(alex_fall$presence ~ alex_fall$plant_rich + alex_fall$evi + alex_fall$scelev + (1|alex_fall$month), family = binomial)
@@ -103,7 +104,7 @@ plantevi_alex[[25]] <- glmer(alex_fall$presence ~ alex_fall$plant_rich + alex_fa
 plantevi_alex[[26]] <- glmer(alex_fall$presence ~ alex_fall$plant_rich + alex_fall$evi + alex_fall$scelev + alex_fall$plant_rich*alex_fall$evi + alex_fall$evi*alex_fall$scelev + (1|alex_fall$month), family = binomial)
 plantevi_alex[[27]] <- glmer(alex_fall$presence ~ alex_fall$plant_rich + alex_fall$evi + alex_fall$scelev + alex_fall$plant_rich*alex_fall$evi + alex_fall$plant_rich*alex_fall$scelev + alex_fall$evi*alex_fall$scelev + (1|alex_fall$month), family = binomial)
 
-cal_data<-pb_sp_evi %>% filter(spname == 'Selasphoruscalliope')
+cal_data<-pb_sp_evi %>% filter(spname == 'Selasphorus calliope')
 plantevi_cal <- list()
 plantevi_cal[[1]] <- glmer(cal_data$presence ~ cal_data$plant_rich + cal_data$evi + (1|cal_data$month), family = binomial)
 plantevi_cal[[2]] <- glmer(cal_data$presence ~ cal_data$plant_rich + cal_data$evi + cal_data$plant_rich*cal_data$evi + (1|cal_data$month), family = binomial)
@@ -137,7 +138,7 @@ plantevi_cal[[25]] <- glmer(cal_fall$presence ~ cal_fall$plant_rich + cal_fall$e
 plantevi_cal[[26]] <- glmer(cal_fall$presence ~ cal_fall$plant_rich + cal_fall$evi + cal_fall$scelev + cal_fall$plant_rich*cal_fall$evi + cal_fall$evi*cal_fall$scelev + (1|cal_fall$month), family = binomial)
 plantevi_cal[[27]] <- glmer(cal_fall$presence ~ cal_fall$plant_rich + cal_fall$evi + cal_fall$scelev + cal_fall$plant_rich*cal_fall$evi + cal_fall$plant_rich*cal_fall$scelev + cal_fall$evi*cal_fall$scelev + (1|cal_fall$month), family = binomial)
 
-plat_data<-pb_sp_evi %>% filter(spname == 'Selasphorusplatycercus')
+plat_data<-pb_sp_evi %>% filter(spname == 'Selasphorus platycercus')
 plantevi_plat <- list()
 plantevi_plat[[1]] <- glmer(plat_data$presence ~ plat_data$plant_rich + plat_data$evi + (1|plat_data$month), family = binomial)
 plantevi_plat[[2]] <- glmer(plat_data$presence ~ plat_data$plant_rich + plat_data$evi + plat_data$plant_rich*plat_data$evi + (1|plat_data$month), family = binomial)
@@ -160,7 +161,8 @@ plantevi_plat[[16]] <- glmer(plat_spring$presence ~ plat_spring$plant_rich + pla
 plantevi_plat[[17]] <- glmer(plat_spring$presence ~ plat_spring$plant_rich + plat_spring$evi + plat_spring$scelev + plat_spring$plant_rich*plat_spring$evi + plat_spring$evi*plat_spring$scelev + (1|plat_spring$month), family = binomial)
 plantevi_plat[[18]] <- glmer(plat_spring$presence ~ plat_spring$plant_rich + plat_spring$evi + plat_spring$scelev + plat_spring$plant_rich*plat_spring$evi + plat_spring$plant_rich*plat_spring$scelev + plat_spring$evi*plat_spring$scelev + (1|plat_spring$month), family = binomial)
 
-plat_fall<-plat_data %>% filter(month >= 7 & month <= 12)
+#plat_fall<-plat_data %>% filter(month >= 7 & month <= 12)
+plat_fall<-plat_data %>% filter(month >= 7 & month <= 10)
 plantevi_plat[[19]] <- glmer(plat_fall$presence ~ plat_fall$plant_rich + plat_fall$evi + (1|plat_fall$month), family = binomial)
 plantevi_plat[[20]] <- glmer(plat_fall$presence ~ plat_fall$plant_rich + plat_fall$evi + plat_fall$plant_rich*plat_fall$evi + (1|plat_fall$month), family = binomial)
 plantevi_plat[[21]] <- glmer(plat_fall$presence ~ plat_fall$plant_rich + plat_fall$evi + plat_fall$scelev + (1|plat_fall$month), family = binomial)
@@ -171,7 +173,7 @@ plantevi_plat[[25]] <- glmer(plat_fall$presence ~ plat_fall$plant_rich + plat_fa
 plantevi_plat[[26]] <- glmer(plat_fall$presence ~ plat_fall$plant_rich + plat_fall$evi + plat_fall$scelev + plat_fall$plant_rich*plat_fall$evi + plat_fall$evi*plat_fall$scelev + (1|plat_fall$month), family = binomial)
 plantevi_plat[[27]] <- glmer(plat_fall$presence ~ plat_fall$plant_rich + plat_fall$evi + plat_fall$scelev + plat_fall$plant_rich*plat_fall$evi + plat_fall$plant_rich*plat_fall$scelev + plat_fall$evi*plat_fall$scelev + (1|plat_fall$month), family = binomial)
 
-ruf_data<-pb_sp_evi %>% filter(spname == 'Selasphorusrufus')
+ruf_data<-pb_sp_evi %>% filter(spname == 'Selasphorus rufus')
 plantevi_ruf <- list()
 plantevi_ruf[[1]] <- glmer(ruf_data$presence ~ ruf_data$plant_rich + ruf_data$evi + (1|ruf_data$month), family = binomial)
 plantevi_ruf[[2]] <- glmer(ruf_data$presence ~ ruf_data$plant_rich + ruf_data$evi + ruf_data$plant_rich*ruf_data$evi + (1|ruf_data$month), family = binomial)

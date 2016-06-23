@@ -56,6 +56,7 @@ alex_evi[[3]]<-glmer(alex_data_evi$presence~ alex_data_evi$evi + alex_data_evi$s
                         family=binomial)
 
 alex_spring_evi<-alex_data_evi %>% filter(month >= 2 & month <= 6)
+
 alex_evi[[4]]<-glmer(alex_spring_evi$presence~ (1|alex_spring_evi$month),
                         family=binomial)
 alex_evi[[5]]<-glmer(alex_spring_evi$presence~ alex_spring_evi$evi + (1|alex_spring_evi$month),
@@ -65,7 +66,8 @@ alex_evi[[5]]<-glmer(alex_spring_evi$presence~ alex_spring_evi$evi + (1|alex_spr
 alex_evi[[6]]<-glmer(alex_spring_evi$presence~ alex_spring_evi$evi + alex_spring_evi$scelev + (1|alex_spring_evi$month),
                         family=binomial)
 
-alex_fall_evi<-alex_data_evi %>% filter(month >= 6 & month <= 12)
+#alex_fall_evi<-alex_data_evi %>% filter(month >= 6 & month <= 12)
+alex_fall_evi<-alex_data_evi %>% filter(month >= 6 & month <= 11)
 alex_evi[[7]]<-glmer(alex_fall_evi$presence~ (1|alex_fall_evi$month),
                         family=binomial)
 alex_evi[[8]]<-glmer(alex_fall_evi$presence~ alex_fall_evi$evi + (1|alex_fall_evi$month),
@@ -145,7 +147,8 @@ plat_evi[[5]]<-glmer(plat_spring_evi$presence~ plat_spring_evi$evi + (1|plat_spr
 plat_evi[[6]]<-glmer(plat_spring_evi$presence~ plat_spring_evi$evi + plat_spring_evi$scelev + (1|plat_spring_evi$month),
                         family=binomial)
 
-plat_fall_evi<-plat_data_evi %>% filter(month >= 7 & month <= 12)
+#plat_fall_evi<-plat_data_evi %>% filter(month >= 7 & month <= 12)
+plat_fall_evi<-plat_data %>% filter(month >= 7 & month <= 10)
 plat_evi[[7]]<-glmer(plat_fall_evi$presence~ (1|plat_fall_evi$month),
                         family=binomial)
 plat_evi[[8]]<-glmer(plat_fall_evi$presence~ plat_fall_evi$evi + (1|plat_fall_evi$month),
@@ -202,27 +205,6 @@ ruf_evi[[12]]<-glmer(ruf_fall_evi$presence~ ruf_fall_evi$evi + ruf_fall_evi$scel
                        ruf_fall_evi$evi*ruf_fall_evi$scelev + (1|ruf_fall_evi$month), family=binomial)
 
 ruf_evirsq<-lapply(ruf_evi, function(x) r.squaredGLMM(x))
-
-#AIC tests
-bird_eviyr<-AIC(bird_rich_evi[[1]],bird_rich_evi[[2]],bird_rich_evi[[3]])
-bird_evisp<-AIC(bird_rich_evi[[4]],bird_rich_evi[[5]],bird_rich_evi[[6]])
-bird_evifa<-AIC(bird_rich_evi[[7]],bird_rich_evi[[8]],bird_rich_evi[[9]])
-
-alex_eviyr<-AIC(alex_evi[[1]],alex_evi[[2]],alex_evi[[3]])
-alex_evisp<-AIC(alex_evi[[4]],alex_evi[[5]],alex_evi[[6]])
-alex_evifa<-AIC(alex_evi[[7]],alex_evi[[8]],alex_evi[[9]])
-
-cal_eviyr<-AIC(cal_evi[[1]],cal_evi[[2]],cal_evi[[3]])
-cal_evisp<-AIC(cal_evi[[4]],cal_evi[[5]],cal_evi[[6]])
-cal_evifa<-AIC(cal_evi[[7]],cal_evi[[8]],cal_evi[[9]])
-
-plat_eviyr<-AIC(plat_evi[[1]],plat_evi[[2]],plat_evi[[3]])
-plat_evisp<-AIC(plat_evi[[4]],plat_evi[[5]],plat_evi[[6]])
-plat_evifa<-AIC(plat_evi[[7]],plat_evi[[8]],plat_evi[[9]])
-
-ruf_eviyr<-AIC(ruf_evi[[1]],ruf_evi[[2]],ruf_evi[[3]])
-ruf_evisp<-AIC(ruf_evi[[4]],ruf_evi[[5]],ruf_evi[[6]])
-ruf_evifa<-AIC(ruf_evi[[7]],ruf_evi[[8]],ruf_evi[[9]])
 
 #save
 save(bird_rich_evirsq,file="bird_rich_evirsq.Rdata")
