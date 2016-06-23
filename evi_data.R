@@ -1,14 +1,15 @@
 library(matrixStats)
 
-setwd("~/masters/Hummingbirds/R for masters/EVI_2004_2014") 
-evi<-list()
-evi<-list.files(,".csv")
-evi<-evi[!evi %in% "evi_mean_centroids_2004_250m.csv"]
+#setwd("~/masters/Hummingbirds/R for masters/EVI_2004_2014") 
+setwd("~/Documents/Hummingbird-Migration/EVI_2004_2014/")
+evi < -list()
+evi <- list.files(".",".csv")
+evi <- evi[!evi %in% "evi_mean_centroids_2004_250m.csv"]
 evi <- evi[!evi %in% "evi_mean_centroids_2005_250m.csv"]
 evi <- evi[!evi %in% "evi_mean_centroids_2006_250m.csv"]
 evi <- evi[!evi %in% "evi_mean_centroids_2007_250m.csv"]
 
-evi_yr<-lapply(evi, function(x)read.csv(x, header=T))
+evi_yr<-lapply(evi, function(x)read.csv(x, header=TRUE))
 evi_yr<-lapply(evi_yr,function(x)x[order(x$system.index),])
 
 evi_r<-lapply(evi_yr,function(x)data.frame(x$mean))
@@ -17,17 +18,17 @@ evi_means<-do.call("cbind",evi_r)
 years<-2008:2014
 colnames(evi_means)<-years
 
-evi_avg<-as.data.frame(rowMeans(evi_means))
+evi_avg<-as.data.frame(rowMeans(evi_means, na.rm = TRUE))
 ident<-data.frame(evi_yr[[1]]$system.index,evi_yr[[1]]$id)
 evi_avg<-cbind(ident,evi_avg)
 colnames(evi_avg)<-c("system.index","id","mean")
 
 matrix_evi<-data.matrix(evi_means)
-evi_sd<-apply(matrix_evi,1,sd)
+evi_sd<-apply(matrix_evi,1,function(x) sd(x, na.rm = TRUE))
 evi_sd<-as.data.frame(evi_sd)
-hist(evi_sd)
+hist(evi_sd$evi_sd)
 
-evi_avg$month<-data.frame(do.call('rbind',strsplit(as.character(evi_avg$system.index),'_',fixed=T)))
+evi_avg$month<-data.frame(do.call('rbind',strsplit(as.character(evi_avg$system.index),'_',fixed=TRUE)))
 evi_avg<-data.frame(evi_avg$month,evi_avg$id,evi_avg$mean)
 colnames(evi_avg)<-c("month","index","id","mean")
 evi_avg$cmonth<-0
