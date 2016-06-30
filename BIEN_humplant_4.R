@@ -19,6 +19,7 @@ library(tidyr)
 #run BIEN_API_FILE_Compilation.R before this code
 #workspace is set as BIEN folder in R for masters
 
+# Downloading range maps from BIEN - only do once ----
 #all plant names run together
 setwd("~/masters/Hummingbirds/R for masters/BIEN3")
 all_plants<-read.csv("all_plants.csv")
@@ -29,15 +30,16 @@ plant_matches<-BIEN.ranges.species(plant_vector, matched=T)
 #writing file of which species range maps were downloaded and not
 write.csv(plant_matches, file = "Laura_plantmatches.csv") 
 
-setwd("~/masters/Hummingbirds/R for masters/2BIEN3")
-files <- list.files("plant_ranges",".shp") #pulling all file names from plant_ranges folder
+# End of downloading range maps from BIEN ----
+
+files <- list.files("data/plant_ranges/",".shp") #pulling all file names from plant_ranges folder
 
 plant_ranges<-list() #empty list for plant range vector files
 name<-substr(files,start=1,stop=nchar(files)-4) #removing the .shp from all the file names
 
 for(a in name){
   
-  shp<-readOGR("plant_ranges",a) #importing all the vector shapefiles
+  shp<-readOGR("data/plant_ranges",a) #importing all the vector shapefiles
   proj4string(shp)<-"+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0" #projecting the shapefiles
   plant_ranges[a]<-shp #saving the vectors into a list
   
@@ -65,9 +67,8 @@ map(north_america)
 plot(range_ras[[1]],add=T)
 
 #phenology table
-setwd("~/masters/Hummingbirds/R for masters/BIEN3")
-phenology<-read.csv("phenology.csv")
-setwd("~/masters/Hummingbirds/R for masters/2BIEN3")
+phenology<-read.csv("data/phenology.csv")
+
 #replace space in accepted name with underscore to match raster names
 phenology$species<-gsub(" ", "_", phenology$acceptedname)
 phenology<-subset(phenology,species %in% name)
@@ -181,12 +182,8 @@ plant_df$plant_rich<-sqrt(plant_df$plant_rich)
 #bird_pts<-lapply(bird_files, function(x)read.table(x, header=T)) 
 
 #migration points
-setwd("~/masters/Hummingbirds/R for masters/aggregate_by_species")
-
-bird_pts <- read.csv("bird_pts.csv")
+bird_pts <- read.csv("data/bird_pts.csv")
 birds <- bird_pts
-
-setwd("~/masters/Hummingbirds/R for masters/2BIEN3")
 
 #create bird presence dataframe for every cell.
 #birds<-ldply(bird_pts)
@@ -208,17 +205,15 @@ blank<-expand.grid(cellnum=c(1:4615),month=c(1:12),spname=uni_birds) #30km
 #blank<-expand.grid(cellnum=c(1:528),month=c(1:12),spname=uni_birds) #90km
 
 #create dataframe with all cells with bird presence information
-birds_sp<-merge(blank,birds,by=c('cellnum','month','spname'),all.x=T)
+birds_sp<-merge(blank,birds,by=c('cellnum','month','spname'),all.x=TRUE)
 birds_sp[is.na(birds_sp)]<-0
 
 #match plant richness to all cells with species presence
-pb_sp<-merge(birds_sp,plant_df, by=c("month","cellnum"),all.x=T)
+pb_sp<-merge(birds_sp,plant_df, by=c("month","cellnum"),all.x=TRUE)
 pb_sp[is.na(pb_sp)]<-0
 
 #load elevation raster
-setwd("~/masters/Hummingbirds/R for masters/2BIEN3/alt_10m_bil")
-elevationr<-raster("alt.bil")
-setwd("~/masters/Hummingbirds/R for masters/2BIEN3")
+elevationr<-raster("data/alt.bil")
 
 #crop the elevation raster to the proper extent
 elevation<-crop(elevationr,extent(-125,-103,25,49))
@@ -234,13 +229,13 @@ elevation_data$cellnum<-c(1:4615) #30km
 #elevation_data$cellnum<-c(1:1120) #60km
 #elevation_data$cellnum<-c(1:528) #60km
 #add elevation to dataframe
-birds_spe<-merge(elevation_data,pb_sp,by="cellnum",all.y=T)
+birds_spe<-merge(elevation_data,pb_sp,by="cellnum",all.y=TRUE)
 
 #scale elevation
 birds_spe$scelev<-as.numeric(scale(birds_spe$alt))
 
 #merge evi data
-load("~/masters/Hummingbirds/R for masters/EVI_2004_2014/final_evi.RData")
+load("data/EVI_2004_2014/final_evi.RData")
 birds_spe<-merge(final_evi,birds_spe,by=c("month","cellnum"))
 
 #calculate bird richness
@@ -268,258 +263,26 @@ pb_rich_evi<-pb_rich[complete.cases(pb_rich),]
 pb_sp_evi<-pb_sp[complete.cases(pb_sp),]
 
 #fitting models
-bird_rich_models<-list()
-bird_rich_models[[1]]<-glmer(cbind(pb_rich_evi$rich,4-pb_rich_evi$rich)~ (1|pb_rich_evi$month),
-                       family=binomial)
-bird_rich_models[[2]]<-glmer(cbind(pb_rich_evi$rich,4-pb_rich_evi$rich)~ pb_rich_evi$plant_rich + (1|pb_rich_evi$month),
-                             family=binomial)
-#bird_rich_models[[3]]<-glmer(cbind(pb_rich$rich,4-pb_rich$rich)~ pb_rich$scelev + (1|pb_rich$month),
- #                            family=binomial)
-bird_rich_models[[3]]<-glmer(cbind(pb_rich_evi$rich,4-pb_rich_evi$rich)~ pb_rich_evi$plant_rich + pb_rich_evi$scelev + (1|pb_rich_evi$month),
-                             family=binomial)
-#bird_rich_models[[4]]<-glmer(cbind(pb_rich$rich,4-pb_rich$rich)~ pb_rich$plant_rich + pb_rich$scelev + pb_rich$evi + (1|pb_rich$month),
-                             #family=binomial)
-spring_rich<-pb_rich_evi %>%
-  filter(month >= 2 & month <= 5)
-bird_rich_models[[4]]<-glmer(cbind(spring_rich$rich,4-spring_rich$rich)~ (1|spring_rich$month),
-                             family=binomial)
-bird_rich_models[[5]]<-glmer(cbind(spring_rich$rich,4-spring_rich$rich)~ spring_rich$plant_rich + (1|spring_rich$month),
-                             family=binomial)
-#bird_rich_models[[7]]<-glmer(cbind(spring_rich$rich,4-spring_rich$rich)~ spring_rich$scelev + (1|spring_rich$month),
- #                            family=binomial)
-bird_rich_models[[6]]<-glmer(cbind(spring_rich$rich,4-spring_rich$rich)~ spring_rich$plant_rich + spring_rich$scelev + (1|spring_rich$month),
-                             family=binomial)
-#bird_rich_models[[8]]<-glmer(cbind(spring_rich$rich,4-spring_rich$rich)~ spring_rich$plant_rich + spring_rich$scelev + spring_rich$evi + (1|spring_rich$month),
-       #                      family=binomial)
+source("mod_fit.R")
+mig_months <- read.csv("data/mig_months.csv")
+load("data/pb_rich_evi.rda")
+load("data/pb_sp_evi.rda")
 
-fall_rich<-pb_rich_evi %>%
-  filter(month >= 5 & month <= 11)
-bird_rich_models[[7]]<-glmer(cbind(fall_rich$rich,4-fall_rich$rich)~ (1|fall_rich$month),
-                             family=binomial)
-bird_rich_models[[8]]<-glmer(cbind(fall_rich$rich,4-fall_rich$rich)~ fall_rich$plant_rich + (1|fall_rich$month),
-                              family=binomial)
-#bird_rich_models[[11]]<-glmer(cbind(fall_rich$rich,4-fall_rich$rich)~ fall_rich$scelev + (1|fall_rich$month),
- #                            family=binomial)
-bird_rich_models[[9]]<-glmer(cbind(fall_rich$rich,4-fall_rich$rich)~ fall_rich$plant_rich + fall_rich$scelev + (1|fall_rich$month),
-                             family=binomial)
-#bird_rich_models[[12]]<-glmer(cbind(fall_rich$rich,4-fall_rich$rich)~ fall_rich$plant_rich + fall_rich$scelev + fall_rich$evi + (1|fall_rich$month),
- #                             family=binomial)
-bird_rich_models[[10]]<-glmer(cbind(pb_rich_evi$rich,4-pb_rich_evi$rich)~ pb_rich_evi$plant_rich + pb_rich_evi$scelev + 
-                                pb_rich_evi$plant_rich*pb_rich_evi$scelev + (1|pb_rich_evi$month), family=binomial)
-bird_rich_models[[11]]<-glmer(cbind(spring_rich$rich,4-spring_rich$rich)~ spring_rich$plant_rich + spring_rich$scelev +
-                                                      spring_rich$plant_rich*spring_rich$scelev + (1|spring_rich$month),family=binomial)
-bird_rich_models[[12]]<-glmer(cbind(fall_rich$rich,4-fall_rich$rich)~ fall_rich$plant_rich + fall_rich$scelev + 
-                                                      fall_rich$plant_rich*fall_rich$scelev + (1|fall_rich$month), family=binomial)
+res_table <- list()
+for(ssn in c('spring', 'fall')) {
+  for(sp in as.character(unique(pb_sp_evi$spname))) {
+    out <- mod_fit(pb_sp_evi, sp, ssn, mig_months)
+    res <- lapply(out$mod_out, table_magic)
+    res <- ldply(res)
+    rsq <- ldply(out$rsq)
+    res <- cbind(res, rsq)
+    res_table[[paste0(sp, "_", ssn)]] <- res
+  }
+  out <- mod_fit(pb_rich_evi, 'all', ssn, mig_months)
+  res <- lapply(out$mod_out, table_magic)
+  res <- ldply(res)
+  rsq <- ldply(out$rsq)
+  res <- cbind(res, rsq)
+  res_table[[paste0("rich_", ssn)]] <- res
+}
 
-bird_rich_rsq<-list()
-bird_rich_rsq<-lapply(bird_rich_models, function(x) r.squaredGLMM(x))
-
-#individual species models
-alex_models<-list()
-
-alex_data<-pb_sp_evi %>%
-  filter(spname == 'Archilochus alexandri')
-alex_models[[1]]<-glmer(alex_data$presence~ (1|alex_data$month),
-                        family=binomial)
-alex_models[[2]]<-glmer(alex_data$presence~ alex_data$plant_rich + (1|alex_data$month),
-      family=binomial) 
-#alex_models[[3]]<-glmer(alex_data$presence~ alex_data$scelev + (1|alex_data$month),
-   #   family=binomial)
-alex_models[[3]]<-glmer(alex_data$presence~ alex_data$plant_rich + alex_data$scelev + (1|alex_data$month),
-                        family=binomial)
-#alex_models[[4]]<-glmer(alex_data$presence~ alex_data$plant_rich + alex_data$scelev + alex_data$evi + (1|alex_data$month),
- #                       family=binomial)
-
-alex_spring<-alex_data %>% filter(month >= 2 & month <= 6)
-alex_models[[4]]<-glmer(alex_spring$presence~ (1|alex_spring$month),
-      family=binomial)
-alex_models[[5]]<-glmer(alex_spring$presence~ alex_spring$plant_rich + (1|alex_spring$month),
-                        family=binomial)
-#alex_models[[7]]<-glmer(alex_spring$presence~ alex_spring$scelev + (1|alex_spring$month),
-           #             family=binomial)
-alex_models[[6]]<-glmer(alex_spring$presence~ alex_spring$plant_rich + alex_spring$scelev + (1|alex_spring$month),
-                        family=binomial)
-#alex_models[[8]]<-glmer(alex_spring$presence~ alex_spring$plant_rich + alex_spring$scelev + alex_spring$evi + (1|alex_spring$month),
- #                       family=binomial)
-
-#alex_fall<-alex_data %>% filter(month >= 6 & month <= 12)
-alex_fall<-alex_data %>% filter(month >= 6 & month <= 11)
-alex_models[[7]]<-glmer(alex_fall$presence~ (1|alex_fall$month),
-                        family=binomial)
-alex_models[[8]]<-glmer(alex_fall$presence~ alex_fall$plant_rich + (1|alex_fall$month),
-                         family=binomial)
-#alex_models[[11]]<-glmer(alex_fall$presence~ alex_fall$scelev + (1|alex_fall$month),
-  #                      family=binomial)
-alex_models[[9]]<-glmer(alex_fall$presence~ alex_fall$plant_rich + alex_fall$scelev + (1|alex_fall$month),
-                        family=binomial)
-#alex_models[[12]]<-glmer(alex_fall$presence~ alex_fall$plant_rich + alex_fall$scelev + alex_fall$evi + (1|alex_fall$month),
- #                        family=binomial)
-alex_models[[10]]<-glmer(alex_data$presence~ alex_data$plant_rich + alex_data$scelev + 
-                           alex_data$plant_rich*alex_data$scelev + (1|alex_data$month), family=binomial)
-alex_models[[11]]<-glmer(alex_spring$presence~ alex_spring$plant_rich + alex_spring$scelev + 
-                           alex_spring$plant_rich*alex_spring$scelev + (1|alex_spring$month), family=binomial)
-alex_models[[12]]<-glmer(alex_fall$presence~ alex_fall$plant_rich + alex_fall$scelev + 
-                           alex_fall$plant_rich*alex_fall$scelev + (1|alex_fall$month), family=binomial)
-
-alex_rsq<-lapply(alex_models, function(x) r.squaredGLMM(x))
-
-cal_models<-list()
-cal_data<-pb_sp_evi %>% filter(spname == 'Selasphorus calliope')
-
-cal_models[[1]]<-glmer(cal_data$presence~ (1|cal_data$month),
-      family=binomial)
-cal_models[[2]]<-glmer(cal_data$presence~ cal_data$plant_rich + (1|cal_data$month),
-      family=binomial)
-#cal_models[[3]]<-glmer(cal_data$presence~ cal_data$scelev + (1|cal_data$month),
-      #                 family=binomial)
-cal_models[[3]]<-glmer(cal_data$presence~ cal_data$plant_rich + cal_data$scelev + (1|cal_data$month),
-                       family=binomial)
-#cal_models[[4]]<-glmer(cal_data$presence~ cal_data$plant_rich + cal_data$scelev + cal_data$evi + (1|cal_data$month),
- #                      family=binomial)
-
-cal_spring<-cal_data %>% filter(month >= 3 & month <= 5)
-cal_models[[4]]<-glmer(cal_spring$presence~ (1|cal_spring$month),
-                       family=binomial)
-cal_models[[5]]<-glmer(cal_spring$presence~ cal_spring$plant_rich + (1|cal_spring$month),
-                       family=binomial)
-#cal_models[[6]]<-glmer(cal_spring$presence~ cal_spring$scelev + (1|cal_spring$month),
-          #             family=binomial)
-cal_models[[6]]<-glmer(cal_spring$presence~ cal_spring$plant_rich + cal_spring$scelev + (1|cal_spring$month),
-                       family=binomial)
-#cal_models[[8]]<-glmer(cal_spring$presence~ cal_spring$plant_rich + cal_spring$scelev + cal_spring$evi + (1|cal_spring$month),
- #                      family=binomial)
-
-cal_fall<-cal_data %>% filter(month >= 5 & month <= 11)
-cal_models[[7]]<-glmer(cal_fall$presence~ (1|cal_fall$month),
-                       family=binomial)
-cal_models[[8]]<-glmer(cal_fall$presence~ cal_fall$plant_rich + (1|cal_fall$month),
-                        family=binomial)
-#cal_models[[11]]<-glmer(cal_fall$presence~ cal_fall$scelev + (1|cal_fall$month),
- #                      family=binomial)
-cal_models[[9]]<-glmer(cal_fall$presence~ cal_fall$plant_rich + cal_fall$scelev + (1|cal_fall$month),
-                       family=binomial)
-#cal_models[[12]]<-glmer(cal_fall$presence~ cal_fall$plant_rich + cal_fall$scelev + cal_fall$evi + (1|cal_fall$month),
- #                       family=binomial)
-cal_models[[10]]<-glmer(cal_data$presence~ cal_data$plant_rich + cal_data$scelev +
-  cal_data$plant_rich*cal_data$scelev + (1|cal_data$month), family=binomial)
-cal_models[[11]]<-glmer(cal_spring$presence~ cal_spring$plant_rich + cal_spring$scelev +
-        cal_spring$plant_rich*cal_spring$scelev + (1|cal_spring$month), family=binomial)
-cal_models[[12]] <- glmer(cal_fall$presence~ cal_fall$plant_rich + cal_fall$scelev +
-                            cal_fall$plant_rich*cal_fall$scelev + (1|cal_fall$month), family=binomial)
-
-cal_rsq<-lapply(cal_models, function(x) r.squaredGLMM(x))
-
-plat_models<-list()
-plat_data<-pb_sp_evi %>% filter(spname == 'Selasphorus platycercus')
-
-plat_models[[1]]<-glmer(plat_data$presence~ (1|plat_data$month),
-                        family=binomial)
-plat_models[[2]]<-glmer(plat_data$presence~ plat_data$plant_rich + (1|plat_data$month),
-                        family=binomial)
-#plat_models[[3]]<-glmer(plat_data$presence~ plat_data$scelev + (1|plat_data$month),
- #                       family=binomial)
-plat_models[[3]]<-glmer(plat_data$presence~ plat_data$plant_rich + plat_data$scelev + (1|plat_data$month),
-                        family=binomial)
-#plat_models[[4]]<-glmer(plat_data$presence~ plat_data$plant_rich + plat_data$scelev + plat_data$evi + (1|plat_data$month),
- #                       family=binomial)
-
-plat_spring<-plat_data %>% filter(month >= 2 & month <= 7)
-
-plat_models[[4]]<-glmer(plat_spring$presence~ (1|plat_spring$month),
-                        family=binomial)
-plat_models[[5]]<-glmer(plat_spring$presence~ plat_spring$plant_rich + (1|plat_spring$month),
-                        family=binomial)
-#plat_models[[6]]<-glmer(plat_spring$presence~ plat_spring$scelev + (1|plat_spring$month),
-     #                   family=binomial)
-plat_models[[6]]<-glmer(plat_spring$presence~ plat_spring$plant_rich + plat_spring$scelev + (1|plat_spring$month),
-                        family=binomial)
-#plat_models[[8]]<-glmer(plat_spring$presence~ plat_spring$plant_rich + plat_spring$scelev + plat_spring$evi + (1|plat_spring$month),
- #                       family=binomial)
-
-#plat_fall<-plat_data %>% filter(month >= 7 & month <= 12)
-plat_fall<-plat_data %>% filter(month >= 7 & month <= 10)
-plat_models[[7]]<-glmer(plat_fall$presence~ (1|plat_fall$month),
-                        family=binomial)
-plat_models[[8]]<-glmer(plat_fall$presence~ plat_fall$plant_rich + (1|plat_fall$month),
-                         family=binomial)
-#plat_models[[11]]<-glmer(plat_fall$presence~ plat_fall$scelev + (1|plat_fall$month),
-   #                      family=binomial)
-plat_models[[9]]<-glmer(plat_fall$presence~ plat_fall$plant_rich + plat_fall$scelev + (1|plat_fall$month),
-                         family=binomial)
-#plat_models[[12]]<-glmer(plat_fall$presence~ plat_fall$plant_rich + plat_fall$scelev + plat_fall$evi + (1|plat_fall$month),
- #                        family=binomial)
-plat_models[[10]]<-glmer(plat_data$presence~ plat_data$plant_rich + plat_data$scelev + 
-                           plat_data$plant_rich*plat_data$scelev + (1|plat_data$month), family=binomial)
-plat_models[[11]]<-glmer(plat_spring$presence~ plat_spring$plant_rich + plat_spring$scelev + 
-                           plat_spring$plant_rich*plat_spring$scelev + (1|plat_spring$month), family=binomial)
-plat_models[[12]]<-glmer(plat_fall$presence~ plat_fall$plant_rich + plat_fall$scelev + 
-                           plat_fall$plant_rich*plat_fall$scelev + (1|plat_fall$month), family=binomial)
-
-plat_rsq<-lapply(plat_models, function(x) r.squaredGLMM(x))
-
-ruf_models<-list()
-ruf_data<-pb_sp_evi %>% filter(spname == 'Selasphorus rufus')
-
-ruf_models[[1]]<-glmer(ruf_data$presence~ (1|ruf_data$month),
-                       family=binomial)
-ruf_models[[2]]<-glmer(ruf_data$presence~ ruf_data$plant_rich + (1|ruf_data$month),
-                       family=binomial)
-#ruf_models[[3]]<-glmer(ruf_data$presence~ ruf_data$scelev + (1|ruf_data$month),
- #                      family=binomial)
-ruf_models[[3]]<-glmer(ruf_data$presence~ ruf_data$plant_rich + ruf_data$scelev + (1|ruf_data$month),
-                       family=binomial)
-#ruf_models[[4]]<-glmer(ruf_data$presence~ ruf_data$plant_rich + ruf_data$scelev + ruf_data$evi + (1|ruf_data$month),
- #                      family=binomial)
-
-ruf_spring<-ruf_data %>% filter(month >= 1 & month <= 5)
-ruf_models[[4]]<-glmer(ruf_spring$presence~ (1|ruf_spring$month),
-                       family=binomial)
-ruf_models[[5]]<-glmer(ruf_spring$presence~ ruf_spring$plant_rich + (1|ruf_spring$month),
-                       family=binomial)
-#ruf_models[[6]]<-glmer(ruf_spring$presence~ ruf_spring$scelev + (1|ruf_spring$month),
- #                      family=binomial)
-ruf_models[[6]]<-glmer(ruf_spring$presence~ ruf_spring$plant_rich + ruf_spring$scelev + (1|ruf_spring$month),
-                       family=binomial)
-#ruf_models[[8]]<-glmer(ruf_spring$presence~ ruf_spring$plant_rich + ruf_spring$scelev + ruf_spring$evi + (1|ruf_spring$month),
- #                      family=binomial)
-
-ruf_fall<-ruf_data %>% filter(month >= 5 & month <= 11)
-ruf_models[[7]]<-glmer(ruf_fall$presence~ (1|ruf_fall$month),
-                       family=binomial)
-ruf_models[[8]]<-glmer(ruf_fall$presence~ ruf_fall$plant_rich + (1|ruf_fall$month),
-                        family=binomial)
-#ruf_models[[11]]<-glmer(ruf_fall$presence~ ruf_fall$scelev + (1|ruf_fall$month),
- #                       family=binomial)
-ruf_models[[9]]<-glmer(ruf_fall$presence~ ruf_fall$plant_rich + ruf_fall$scelev + (1|ruf_fall$month),
-                        family=binomial)
-#ruf_models[[12]]<-glmer(ruf_fall$presence~ ruf_fall$plant_rich + ruf_fall$scelev + ruf_fall$evi + (1|ruf_fall$month),
- #                       family=binomial)
-ruf_models[[10]]<-glmer(ruf_data$presence~ ruf_data$plant_rich + ruf_data$scelev + 
-                          ruf_data$plant_rich*ruf_data$scelev + (1|ruf_data$month), family=binomial)
-ruf_models[[11]]<-glmer(ruf_spring$presence~ ruf_spring$plant_rich + ruf_spring$scelev + 
-                          ruf_spring$plant_rich*ruf_spring$scelev + (1|ruf_spring$month), family=binomial)
-ruf_models[[12]]<-glmer(ruf_fall$presence~ ruf_fall$plant_rich + ruf_fall$scelev + 
-                          ruf_fall$plant_rich*ruf_fall$scelev + (1|ruf_fall$month),family=binomial)
-
-ruf_rsq<-lapply(ruf_models, function(x) r.squaredGLMM(x))
-
-#save
-save(bird_rich_rsq, file="bird_rich_rsq.Rdata")
-save(bird_sp,file="bird_sp.Rdata")
-save(bird_fa,file="bird_fa.Rdata")
-save(alex_rsq,file="alex_rsq.Rdata")
-save(cal_rsq,file="cal_rsq.Rdata")
-save(plat_rsq,file="plat_rsq.Rdata")
-save(ruf_rsq,file="ruf_rsq.Rdata")
-save(alex_yr,file="alex_yr.Rdata")
-save(alex_sp,file="alex_sp.Rdata")
-save(alex_fa,file="alex_fa.Rdata")
-save(cal_yr,file="cal_yr.Rdata")
-save(cal_sp,file="cal_sp.Rdata")
-save(cal_fa,file="cal_fa.Rdata")
-save(plat_yr,file="plat_yr.Rdata")
-save(plat_sp,file="plat_sp.Rdata")
-save(plat_fa,file="plat_fa.Rdata")
-save(ruf_yr,file="ruf_yr.Rdata")
-save(ruf_sp,file="ruf_sp.Rdata")
-save(ruf_fa,file="ruf_fa.Rdata")
