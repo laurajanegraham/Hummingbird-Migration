@@ -1,54 +1,33 @@
 library(matrixStats)
 
-#setwd("~/masters/Hummingbirds/R for masters/EVI_2004_2014") 
-setwd("~/Documents/Hummingbird-Migration/EVI_2004_2014/")
-evi < -list()
-evi <- list.files(".",".csv")
-evi <- evi[!evi %in% "evi_mean_centroids_2004_250m.csv"]
-evi <- evi[!evi %in% "evi_mean_centroids_2005_250m.csv"]
-evi <- evi[!evi %in% "evi_mean_centroids_2006_250m.csv"]
-evi <- evi[!evi %in% "evi_mean_centroids_2007_250m.csv"]
+# load in all files except the 2004 data (we aren't using 2004)
+evi <- list.files("EVI_2004_2014",".csv", full.names = TRUE)
+f_remove <- list.files("EVI_2004_2014", "2004", full.names = TRUE)
+evi <- evi[!evi %in% f_remove]
+evi_yr<-lapply(evi, function(x) read.csv(x, header=TRUE))
 
-evi_yr<-lapply(evi, function(x)read.csv(x, header=TRUE))
-evi_yr<-lapply(evi_yr,function(x)x[order(x$system.index),])
+# ensure all years are in the same order
+evi_yr<-lapply(evi_yr,function(x) x[order(x$system.index),])
 
-evi_r<-lapply(evi_yr,function(x)data.frame(x$mean))
+# get just the mean (EVI value) and put into column per year
+evi_r<-lapply(evi_yr,function(x) data.frame(x$mean))
 evi_means<-do.call("cbind",evi_r)
 
-years<-2008:2014
-colnames(evi_means)<-years
-
-evi_avg<-as.data.frame(rowMeans(evi_means, na.rm = TRUE))
-ident<-data.frame(evi_yr[[1]]$system.index,evi_yr[[1]]$id)
+# get an average EVI across years 
+evi_avg <- as.data.frame(rowMeans(evi_means, na.rm = TRUE))
+ident <- data.frame(evi_yr[[1]]$system.index, evi_yr[[1]]$id)
 evi_avg<-cbind(ident,evi_avg)
 colnames(evi_avg)<-c("system.index","id","mean")
 
-matrix_evi<-data.matrix(evi_means)
-evi_sd<-apply(matrix_evi,1,function(x) sd(x, na.rm = TRUE))
-evi_sd<-as.data.frame(evi_sd)
-hist(evi_sd$evi_sd)
 
-evi_avg$month<-data.frame(do.call('rbind',strsplit(as.character(evi_avg$system.index),'_',fixed=TRUE)))
-evi_avg<-data.frame(evi_avg$month,evi_avg$id,evi_avg$mean)
-colnames(evi_avg)<-c("month","index","id","mean")
-evi_avg$cmonth<-0
+evi_avg$month <- data.frame(do.call('rbind',strsplit(as.character(evi_avg$system.index),'_',fixed=TRUE)))
+evi_avg <- data.frame(evi_avg$month,evi_avg$id,evi_avg$mean)
+colnames(evi_avg) <- c("month","index","id","mean")
+evi_avg$cmonth <- as.numeric(as.character(evi_avg$month)) + 1
 
-evi_avg[which(evi_avg$month==0),5]<-1
-evi_avg[which(evi_avg$month==1),5]<-2
-evi_avg[which(evi_avg$month==2),5]<-3
-evi_avg[which(evi_avg$month==3),5]<-4
-evi_avg[which(evi_avg$month==4),5]<-5
-evi_avg[which(evi_avg$month==5),5]<-6
-evi_avg[which(evi_avg$month==6),5]<-7
-evi_avg[which(evi_avg$month==7),5]<-8
-evi_avg[which(evi_avg$month==8),5]<-9
-evi_avg[which(evi_avg$month==9),5]<-10
-evi_avg[which(evi_avg$month==10),5]<-11
-evi_avg[which(evi_avg$month==11),5]<-12
-
-final_evi<-data.frame(evi_avg$id,evi_avg$cmonth,evi_avg$mean)
-colnames(final_evi)<-c('cellnum','month','evi') #30km
-
+final_evi <- data.frame(evi_avg$id,evi_avg$cmonth,evi_avg$mean)
+colnames(final_evi) <- c('cellnum','month','evi') #30km
+save(final_evi, file="EVI_2004_2014/final_evi.RData")
 #changing resolution
 #centroids<-read.csv("raster_centroids.csv")
 #evi_coords<-merge(final_evi,centroids,by=c("cellnum"),all.x=T)
