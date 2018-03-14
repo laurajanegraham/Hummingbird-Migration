@@ -1,0 +1,180 @@
+---
+title: "Hummingbird migration: data munging"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
+
+# required packages
+library(raster)
+library(rgdal)
+library(plyr)
+library(tidyverse)
+library(stringr)
+library(BIEN)
+library(lubridate)
+library(stringr)
+```
+
+## Environmental Data
+
+We have the following environmental data: EVI, Species richness of plants in flower, and elevation. 
+
+### EVI data
+
+These are from MODIS, downloaded using Google Earth Engine. 
+
+```{r evi_data}
+evi <- list.files("data/EVI_2004_2014",".csv", full.names = TRUE)
+
+evi_yr<-ldply(evi, function(x) {
+  year <- str_match(x, "centroids_(.*?)_250m")[,2] %>% as.numeric
+  dat <- read_csv(x) %>% 
+    # this line makes sure all years are ordered in the same way
+    arrange(`system:index`) %>% 
+    separate(`system:index`, c("month", "index")) %>% 
+    rename(cellnum = id) %>% 
+    select(cellnum, month, mean) %>% 
+    mutate_all(as.numeric) %>% 
+    mutate(year = year, month = month + 1)
+})
+
+evi_df <- group_by(evi_yr, cellnum, month) %>% 
+  summarise(evi = mean(mean, na.rm = TRUE), evi_sd = sd(mean, na.rm = TRUE)) %>% na.omit
+
+summary(evi_df)
+```
+
+### Hummingbird-used plants phenology
+
+We created a phenology for ~300 plant species; we will load this in and convert the months to some start and end dates (the year doesn't matter, we have arbitrarily set to 2010). 
+
+```{r phenology}
+hb_plants <- read_csv("data/hb_plants.csv") %>% 
+  mutate(Species = gsub(" ", "_", accepted_name)) %>% 
+  mutate(startmonth = match(begin_flowering, month.name) %>% str_pad(2, pad="0"),
+         startdate = ymd(paste0("2010", startmonth, "01")),
+         endmonth = match(end_flowering, month.name) %>% str_pad(2, pad="0"),
+         enddate = ymd(paste0("2010", endmonth, "01")))
+
+hb_plants_dates <- hb_plants %>% na.omit
+```
+
+### BIEN plant range maps
+
+Now we need to get the range maps for each of the plant species we have bloom dates for. These are downloaded from BIEN using the BIEN R package; it takes ~2-3 minutes. We then rasterise the ranges to ~30km resolution to match with the rest of the data. 
+
+```{r bien_data}
+plant_matches <- BIEN_ranges_species(hb_plants_dates$accepted_name, 
+                                     directory = "data/plant_ranges", matched = TRUE)
+
+hb_plants <- left_join(hb_plants,plant_matches) %>% 
+  select(-accepted_name) %>% 
+  rename(Included = `Range_map_downloaded?`)
+
+sp_analysed <- filter(hb_plants, Included == "Yes") %>% 
+  mutate(interval = interval(startdate,enddate))
+
+crs_string <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"
+
+# for rasterising
+e <- c(-125,-103,25,49)
+blank <- raster(,ncol=22,nrow=25)
+extent(blank) <- e
+res(blank) <- 0.33918298 
+
+# rasterise ranges
+plant_ranges <- lapply(sp_analysed$Species, function(x) {
+  shp <- readOGR("data/plant_ranges", x, verbose = FALSE) 
+  ras <- rasterize(shp, blank)
+})
+
+```
+
+We obtained range maps for `r nrow(sp_analysed)` of the `r nrow(hb_plants_dates)` for which we had bloom dates, out of a total `r nrow(hb_plants)` identified native hummingbird plants. 
+
+### Combining BIEN ranges with the phenology
+
+```{r phenology_ranges}
+plant_df <- ldply(1:12, function(m) {
+  d <- ymd(paste0("2010", str_pad(m, 2, pad = "0"), "01"))
+  sp <- which(d %within% sp_analysed$interval)
+  ras <- stack(plant_ranges[sp])
+  rich <- raster::calc(ras, sum, na.rm = TRUE)
+  df <- as.data.frame(rich, xy = TRUE) %>% mutate(month = m)
+})
+
+plant_pts <- SpatialPointsDataFrame(coords = cbind(plant_df$x,plant_df$y), data=plant_df,
+                                   proj4string = CRS(crs_string))
+
+plant_df$cellnum <- cellFromXY(blank, plant_pts)
+plant_df <- rename(plant_df, srpf = layer) %>% select(cellnum, month, srpf)
+
+summary(plant_df)
+```
+
+### Elevation data
+
+We have elevation data from SRTM (??)
+
+```{r elevation}
+elevationr <- raster("data/alt.bil")
+elevation <- crop(elevationr,extent(-125, -103, 25, 49))
+elevation_resam <- aggregate(elevation, fact=2, fun=mean)
+elevation_resam[is.na(elevation_resam[])] <- 0
+elevation_resam <- resample(elevation_resam, blank,method="ngb")
+elevation_df <- as.data.frame(elevation_resam, xy = TRUE)
+elevation_pts <- SpatialPointsDataFrame(coords = cbind(elevation_df$x, elevation_df$y),
+                                   data = elevation_df, proj4string = CRS(crs_string))
+elevation_df$cellnum <- cellFromXY(blank, elevation_pts)
+elevation_df <- select(elevation_df, cellnum, alt)
+
+summary(elevation_df)
+```
+
+## Hummingbird data
+
+We have point locations of hummingbird observations from eBird - these have been selected ...
+
+We collate them so for each species in each cell in our raster for each month, we have an entry if that species was sighted in that cell/month across the 7 years of the data. 
+
+```{r hummingbirds}
+bird_pts <- read_csv("data/bird_pts.csv")
+bird_pts <- SpatialPointsDataFrame(coords = cbind(bird_pts$lon, bird_pts$lat),
+                                   data = bird_pts, proj4string = CRS(crs_string))
+bird_pts$cellnum <- cellFromXY(blank, bird_pts)
+
+bird_df <- bird_pts %>% 
+  as.data.frame %>% 
+  na.omit %>% 
+  select(spname, month, cellnum) %>% 
+  mutate(presence = 1) %>% 
+  unique %>% 
+  spread(spname, presence, fill = 0) %>% 
+  mutate(sprich = `Archilochus alexandri` + `Selasphorus calliope` + `Selasphorus platycercus` + `Selasphorus rufus`)
+  
+summary(bird_df)
+```
+
+## Combine all data
+
+Now we have all our data in dataframes with the cell number as a unique identifier, we can merge them. First we want to make sure we only keep rows which have at least one hummingbird or one plant in flower. This means that for each month, the presence/absence cells are taken from cells where at least one hummingbird was sighted, or at least one species of plant is currently flowering. 
+
+```{r}
+df <- full_join(bird_df, plant_df) %>% 
+  replace(is.na(.), 0) %>% 
+  mutate(temp = srpf + sprich) %>% filter(temp > 0) %>% select(-temp)
+
+colSums(df)
+nrow(filter(df, sprich > 0))
+# do some summaries?
+```
+
+Then we can join elevation and EVI
+
+```{r}
+df <- inner_join(df, evi_df) %>% inner_join(elevation_df)
+```
+
+
