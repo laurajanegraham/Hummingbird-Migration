@@ -16,19 +16,16 @@ library(plyr)
 library(dplyr)
 library(tidyr)
 
-#run BIEN_API_FILE_Compilation.R before this code
-#workspace is set as BIEN folder in R for masters
-
 # Downloading range maps from BIEN - only do once ----
 #all plant names run together
-setwd("~/masters/Hummingbirds/R for masters/BIEN3")
-all_plants<-read.csv("all_plants.csv")
-plant_vector<-all_plants$acceptedname
-#pulling all BIEN range maps for species vector
-setwd("~/masters/Hummingbirds/R for masters/2BIEN3")
-plant_matches<-BIEN.ranges.species(plant_vector, matched=T) 
+
+all_plants <- read.csv("data/all_plants.csv")
+plant_vector <- all_plants$acceptedname
+
+plant_matches <- BIEN_ranges_species(plant_vector, 
+                                     directory = "plant_ranges") 
 #writing file of which species range maps were downloaded and not
-write.csv(plant_matches, file = "Laura_plantmatches.csv") 
+write.csv(plant_matches, file = "plantmatches.csv") 
 
 # End of downloading range maps from BIEN ----
 
